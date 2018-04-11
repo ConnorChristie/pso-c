@@ -30,12 +30,13 @@ typedef struct {
 
 typedef struct {
     int swarm_size;
+    int iterations;
     double omega;
     double phi_p;
     double phi_g;
 } swarm_params_t;
 
-int run_pso(context_t *context, swarm_params_t swarm_params, coordinate_t *best_position, double *best_position_cost);
+coordinate_t run_pso(context_t *context, swarm_params_t swarm_params);
 double calculate_cost(coordinate_t *coord, coordinate_t *actual);
 
 int main(int argc, char **argv) {
@@ -53,17 +54,15 @@ int main(int argc, char **argv) {
 
     swarm_params_t swarm_params = {
         .swarm_size = 100,
+        .iterations = 200,
         .omega = 0.5,
         .phi_p = 0.5,
         .phi_g = 0.5
     };
 
-    coordinate_t best_position;
-    double best_position_cost;
+    coordinate_t best_position = run_pso(&context, swarm_params);
 
-    int count = run_pso(&context, swarm_params, &best_position, &best_position_cost);
-
-    fprintf(stdout, "Iterations: %d, best pos: (%.2f, %.2f, %.2f)\n", count, best_position.x, best_position.y, best_position.rotation);
+    fprintf(stdout, "Best pos: (%.2f, %.2f, %.2f)\n", best_position.x, best_position.y, best_position.rotation);
 }
 
 /**
@@ -169,37 +168,45 @@ void update_particle(particle_t *particle, coordinate_t *best_position, swarm_pa
 }
 
 /**
+ * Updates the entire particle swarm
+ */
+void update_swarm(context_t *context, particle_t particles[], swarm_params_t *swarm_params, coordinate_t *best_position, double *best_position_cost) {
+    for (int p = 0; p < swarm_params->swarm_size; p++) {
+        particle_t *particle = &particles[p];
+        coordinate_t *position = &particle->position;
+
+        update_particle(particle, best_position, swarm_params);
+        double cost = calculate_cost(position, &context->actual_coord);
+
+        if (cost < particle->best_position_cost) {
+            particle->best_position = *position;
+            particle->best_position_cost = cost;
+
+            if (cost < *best_position_cost) {
+                *best_position = *position;
+                *best_position_cost = cost;
+            }
+        }
+    }
+}
+
+/**
  * Runs particle swarm optimisation with the given swarm parameters
  */
-int run_pso(context_t *context, swarm_params_t swarm_params, coordinate_t *best_position, double *best_position_cost) {
+coordinate_t run_pso(context_t *context, swarm_params_t swarm_params) {
     int iterations = 0;
 
     particle_t particles[swarm_params.swarm_size];
-    fill_particles(context, particles, swarm_params.swarm_size, best_position, best_position_cost);
+    coordinate_t best_position;
+    double best_position_cost;
 
-    for (int i = 0; i < 1000; i++) {
-        for (int p = 0; p < swarm_params.swarm_size; p++) {
-            particle_t *particle = &particles[p];
-            coordinate_t *position = &particle->position;
+    fill_particles(context, particles, swarm_params.swarm_size, &best_position, &best_position_cost);
 
-            update_particle(particle, best_position, &swarm_params);
-            double cost = calculate_cost(position, &context->actual_coord);
-
-            if (cost < particle->best_position_cost) {
-                particle->best_position = *position;
-                particle->best_position_cost = cost;
-
-                if (cost < *best_position_cost) {
-                    *best_position = *position;
-                    *best_position_cost = cost;
-                }
-            }
-        }
-
-        iterations++;
+    for (int i = 0; i < swarm_params.iterations; i++) {
+        update_swarm(context, particles, &swarm_params, &best_position, &best_position_cost);
     }
 
-    return iterations;
+    return best_position;
 }
 
 /**
