@@ -4,7 +4,7 @@ This is an implementation of the [PSO algorithm](https://en.wikipedia.org/wiki/P
 ## Running
 Call the following method with your search bounds and swarm params:
 ```C
-int run_pso(context_t *context, swarm_params_t swarm_params, coordinate_t *best_position, double *best_position_cost);
+coordinate_t run_pso(context_t *context, swarm_params_t swarm_params);
 ```
 
 ## Example Code
@@ -26,8 +26,5 @@ swarm_params_t swarm_params = {
     .phi_g = 0.5
 };
 
-coordinate_t best_position;
-double best_position_cost;
-
-int count = run_pso(&context, swarm_params, &best_position, &best_position_cost);
+coordinate_t best_position = run_pso(&context, swarm_params);
 ```
