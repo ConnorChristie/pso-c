@@ -21,6 +21,7 @@ context_t context = {
 
 swarm_params_t swarm_params = {
     .swarm_size = 100,
+    .iterations = 200,
     .omega = 0.5,
     .phi_p = 0.5,
     .phi_g = 0.5
